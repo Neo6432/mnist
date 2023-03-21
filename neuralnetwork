@@ -1,0 +1,184 @@
+import numpy as np
+import random
+from PIL import Image
+words = []
+ago_mess = [""]
+np.save('C:\\Projects\\Boris\m.npy',ago_mess)
+my_ans = []
+np.save('C:\\Projects\\Boris\m1.npy',my_ans)
+def check(a):
+    cond = 0
+    for i in range(400):
+        if abs(a[i]) < 0.1:
+            continue
+        else:
+            cond = 1
+    return cond
+def app(a):
+    words = np.load('C:\\Projects\\Boris\words.npy')
+    a = a.split()
+    for i in range(len(a)):
+        if a[i] in words:
+            continue
+        else:
+            words = np.append(words,a[i])
+    np.save('C:\\Projects\\Boris\words.npy',words)
+    
+def incode(a):
+    words = np.load('C:\\Projects\\Boris\words.npy')
+    out = []
+    for i in range(20):
+        out.append(0)
+    for i in range(len(words)):
+        if a == words[i]:
+            s = i + 1
+            r = bin(s)
+            r = r.lstrip('-0b')
+            
+    d = 19
+    for i in range(len(r)-1,-1,-1):
+        out[d] = int(r[i])
+        
+        
+        d = d - 1
+        
+    return out
+def code(st):
+    arr = st.split()
+    out = []
+    c = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    for i in range(len(arr)):
+        out += incode(arr[i])
+    for i in range(20-len(arr)):
+        out += c
+    return out
+
+
+def decode(arr):
+    words = np.load('C:\\Projects\\Boris\words.npy')
+    a = np.array_split(arr, 20)
+    final = "ALTRON: "
+    
+    for i in range(len(a)):
+        out = a[i]
+        s = ""
+        for i in range(len(out)):
+            if out[i] >= 0.6:
+                s = s + str(1)
+            else:
+                s = s + str(0)
+        if int(s,2)-1 >= 0:
+            final = final + words[int(s,2)-1] + " "
+    return final
+    
+    
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
+def neuron(signal,weights):
+    signal = sigmoid(np.dot(signal,weights))
+    return signal
+    
+def net(s,w):
+    signals1 = []
+    signals2 = []
+    for i in range(400):
+        signals1.append(neuron(s,w[i]))
+         
+    return signals1
+
+def education(string,correct):
+    test = np.load('C:\\Projects\\Boris\w25.npy',allow_pickle=True)
+    ans = np.load('C:\\Projects\\Boris\w26.npy',allow_pickle=True)
+    x = np.array(code(string))
+    y = np.array(code(correct))
+    
+    
+    test =  np.vstack([test,x])
+    ans = np.vstack([ans,y])
+    np.save('C:\\Projects\\Boris\w25.npy',test)
+    np.save('C:\\Projects\\Boris\w26.npy',ans)
+    
+    w = np.load('C:\\Projects\\Boris\w9.npy')
+    err = []
+    for i in range(400):
+        err.append(0)    
+    x = 0
+    count = 0
+    print(len(test))
+    while x <= 5:
+        res = net(test[-1],w)
+        for s in range(400):
+            err[s] =  ans[-1][s] - res[s]
+        for s in range(400):
+            for i in range(400):
+                w[s][i] = w[s][i] + 0.7*err[s]*test[-1][i]
+        print(err)
+        x+=1
+        while x <= 5:
+            for j in range(len(test)):
+                res = net(test[j],w)
+                for s in range(400):
+                    err[s] =  ans[j][s] - res[s]
+                if abs(sum(map(abs, err)))/400> 0.1:
+                    for s in range(400):
+                        for i in range(400):
+                            w[s][i] = w[s][i] + 0.5*err[s]*test[j][i]
+                print(abs(sum(map(abs, err)))/400,'   ',check(err))
+            x+=1
+    
+    print("end")
+    print(len(test))
+    np.save('C:\\Projects\\Boris\w9.npy',w)    
+
+from aiogram import Bot, Dispatcher, executor, types
+ 
+API_TOKEN = '6233079014:AAHsqJDko3OUW2UBnVPCienBsY-k35TkpH0'
+ 
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher(bot)
+ 
+@dp.message_handler(commands=['start'])
+async def send_welcome(message: types.Message):
+    await message.reply("Привет!\nЯ Эхо-бот от Skillbox!\nОтправь мне любое сообщение, а я тебе обязательно отвечу.")
+
+@dp.message_handler(commands=['info'])
+async def send_welcome(message: types.Message):
+    await message.reply("Привет!\nЯ Эхо-бот от Skillbox!\nОтправь мне любое сообщение, а я тебе обязательно отвечу.")
+ 
+@dp.message_handler()
+async def echo(message: types.Message):
+    print(message.text)
+    message.text = message.text.lower()
+    if message.text[0] == ":":
+        c = message.text
+        c = c.lstrip(':')
+        await message.answer("[Attention!The education was started,please,do not write anything before the end of the learning process.]")
+        
+        app(c)
+        ago = np.load('C:\\Projects\\Boris\m.npy',allow_pickle=True)
+        s = ago[0]
+        
+        education(s,c)
+        await message.answer("[The education was ended.]")
+    elif message.text[0] == "+":
+        ans = np.load('C:\\Projects\\Boris\m1.npy',allow_pickle=True)
+        c = ans[0]
+        await message.answer("[Attention!The education was started,please,do not write anything before the end of the learning process.]")
+        
+        app(c)
+        ago = np.load('C:\\Projects\\Boris\m.npy',allow_pickle=True)
+        s = ago[0]
+        
+        education(s,c)
+        await message.answer("[The education was ended.]")        
+    else:
+        app(message.text)
+        w = np.load('C:\\Projects\\Boris\w9.npy')
+        await message.answer(decode(net(code(message.text),w)))
+        ago = [message.text]
+        np.save('C:\\Projects\\Boris\m.npy',ago)
+        ans = [decode(net(code(message.text),w))]
+        np.save('C:\\Projects\\Boris\m1.npy',ans)
+        print(decode(net(code(message.text),w)))
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
